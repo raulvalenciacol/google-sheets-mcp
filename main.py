@@ -181,12 +181,36 @@ def _restore_stdout() -> None:
         print(captured, end="", file=sys.stderr)
 
 
+def _expand_comma_separated_args(argv: list[str], flag: str) -> list[str]:
+    """Expand comma-separated values for a repeatable CLI flag into separate tokens.
+
+    Railway start commands often pass --tools as a single comma-joined string
+    (e.g. ``--tools gmail,drive,sheets``) instead of space-separated tokens.
+    argparse rejects these because each token is validated against choices.
+    """
+    result = []
+    i = 0
+    while i < len(argv):
+        result.append(argv[i])
+        if argv[i] == flag:
+            i += 1
+            while i < len(argv) and not argv[i].startswith("-"):
+                result.extend(argv[i].split(","))
+                i += 1
+            continue
+        i += 1
+    return result
+
+
 def main():
     """
     Main entry point for the Google Workspace MCP server.
     Uses FastMCP's native streamable-http transport.
     """
     _restore_stdout()
+
+    # Support comma-separated values for --tools (e.g. Railway start commands)
+    sys.argv = _expand_comma_separated_args(sys.argv, "--tools")
 
     # Configure safe logging for Windows Unicode handling
     configure_safe_logging()
