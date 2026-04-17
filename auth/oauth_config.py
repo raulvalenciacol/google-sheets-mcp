@@ -101,7 +101,10 @@ class OAuthConfig:
         explicit_uri = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
         if explicit_uri:
             return explicit_uri
-        return f"{self.base_url}/oauth2callback"
+        # Use external URL when available (e.g. Railway reverse proxy) so the
+        # redirect URI matches the public-facing HTTPS address, not the internal
+        # host:port combination that is unreachable from outside the container.
+        return f"{self.get_oauth_base_url()}/oauth2callback"
 
     @staticmethod
     def _get_redirect_path(uri: str) -> str:
